@@ -200,8 +200,10 @@ std::optional<ModelInputParams> GraphPersistentParam::update(
       q_cu_seq_lens_ = torch::zeros({max_seqs_per_batch + 1},
                                     torch::dtype(torch::kInt).device(device_));
     }
-    // Copy data
-    q_cu_seq_lens_.slice(/*dim=*/0, /*start=*/0, /*end=*/actual_batch_size)
+    // Copy data - use actual tensor size since q_cu_seq_lens size may differ
+    // from actual_batch_size in MTP/speculative validation mode
+    const int64_t q_cu_seq_lens_size = params.q_cu_seq_lens.size(0);
+    q_cu_seq_lens_.slice(/*dim=*/0, /*start=*/0, /*end=*/q_cu_seq_lens_size)
         .copy_(params.q_cu_seq_lens, /*non_blocking=*/true);
   }
 
@@ -258,12 +260,13 @@ std::optional<ModelInputParams> GraphPersistentParam::update(
       params_for_capture->input_embedding =
           persistent_embedding(padded_num_tokens);
     }
-    // Set q_cu_seq_lens if available
+    // Set q_cu_seq_lens if available - use actual tensor size for consistency
     if (params.q_cu_seq_lens.defined()) {
+      const int64_t q_cu_seq_lens_size = params.q_cu_seq_lens.size(0);
       params_for_capture->q_cu_seq_lens =
           q_cu_seq_lens_.slice(/*dim=*/0,
                                /*start=*/0,
-                               /*end=*/actual_batch_size);
+                               /*end=*/q_cu_seq_lens_size);
     }
     return params_for_capture;
   }
