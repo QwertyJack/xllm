@@ -373,6 +373,20 @@ class TestUT(Command):
     def finalize_options(self) -> None:
         pass
 
+    def setup_runtime_env(self) -> None:
+        device = get_device_type()
+
+        if device == "a2" or device == "a3":
+            set_npu_envs()
+        elif device == "mlu":
+            set_mlu_envs()
+        elif device == "cuda":
+            set_cuda_envs()
+        elif device == "ilu":
+            set_ilu_envs()
+        elif device == "musa":
+            set_musa_envs()
+
     def run_ctest(self, cmake_dir: str) -> int:
         def run_subprocess_with_streaming(
             cmd: list[str],
@@ -452,6 +466,7 @@ class TestUT(Command):
             exit(1)
 
     def run(self) -> None:
+        self.setup_runtime_env()
         self.run_ctest(get_cmake_dir())
 
 class SingleTest(Command):
